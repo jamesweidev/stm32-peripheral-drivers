@@ -1,7 +1,7 @@
 
 // Example LED blinker
 
-#include "stm32f446xx.h.h"
+#include "stm32f446xx.h"
 
 #define LED_PIN_NUM 5
 
