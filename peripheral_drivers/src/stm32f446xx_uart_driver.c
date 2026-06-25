@@ -1,10 +1,10 @@
 #include "stm32f446xx_uart_driver.h"
 
-static void usart_handle_txeie(USART_Handle_t* p_handle);
-static void usart_handle_tcie(USART_Handle_t* p_handle);
-static void usart_handle_rxneie(USART_Handle_t* p_handle);
+static void usart_handle_txeie(USART_Handle_t* pHandle);
+static void usart_handle_tcie(USART_Handle_t* pHandle);
+static void usart_handle_rxneie(USART_Handle_t* pHandle);
 
-void usart_clk_control(USART_Reg_t* pUSARTx, uint8_t enable)
+void usart_ClkControl(USART_Reg_t* pUSARTx, uint8_t enable)
 {
 	if (enable)
 	{
@@ -25,7 +25,7 @@ void usart_clk_control(USART_Reg_t* pUSARTx, uint8_t enable)
 	}
 }
 
-void usart_init(USART_Handle_t* pHandle)
+void USART_Init(USART_Handle_t* pHandle)
 {
 	USART_Config_t config = pHandle->config;
 	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
@@ -36,44 +36,44 @@ void usart_init(USART_Handle_t* pHandle)
 	usart_clk_control(pUSARTx, 1);
 
 	// CR2
-	tempreg |= (config.stop_bits << 12); // configure stop bits
+	tempreg |= (config.stop_bits << USART_CR2_STOP); // configure stop bits
 
 	pUSARTx->CR2 = tempreg;
 
 	// CR3
 	tempreg = 0;
-	if (config.flow_ctrl == 1 || config.flow_ctrl == 3)
+	if (config.flow_ctrl == USART_FLOW_CTRL_CTS || config.flow_ctrl == USART_FLOW_CTRL_CTS_RTS)
 	{
-		tempreg |= (1 << 9);
+		tempreg |= (1 << USART_CR3_CTSE);
 	}
-	if (config.flow_ctrl == 2 || config.flow_ctrl == 3)
+	if (config.flow_ctrl == USART_FLOW_CTRL_RTS || config.flow_ctrl == USART_FLOW_CTRL_CTS_RTS)
 	{
-		tempreg |= (1 << 8);
+		tempreg |= (1 << USART_CR3_RTSE);
 	}
 	pUSARTx->CR3 = tempreg;
 
 	// CR1
 	tempreg = 0;
-	if (config.mode == 0 || config.mode == 2) // enable transmit
+	if (config.mode == USART_MODE_TX || config.mode == USART_MODE_TX_RX) // enable transmit
 	{
-		tempreg |= (1 << 3);
+		tempreg |= (1 << USART_CR1_TE);
 	}
-	if (config.mode == 1 || config.mode == 2) // enable receive
+	if (config.mode == USART_MODE_RX || config.mode == USART_MODE_TX_RX) // enable receive
 	{
-		tempreg |= (1 << 2);
+		tempreg |= (1 << USART_CR1_RE);
 	}
 
-	tempreg |= (config.word_len << 12); // configure word length
+	tempreg |= (config.word_len << USART_CR1_M); // configure word length
 
-	tempreg |= (1 << 13); // enable USART
+	tempreg |= (1 << USART_CR1_UE); // enable USART
 
-	if (config.parity == 1)
+	if (config.parity == USART_PARITY_ODD)
 	{
-		tempreg |= (1 << 10);
-		tempreg |= (1 << 9);
-	} else if (config.parity == 2)
+		tempreg |= (1 << USART_CR1_PCE);
+		tempreg |= (1 << USART_CR1_PS);
+	} else if (config.parity == USART_PARITY_ODD)
 	{
-		tempreg |= (1 << 10);
+		tempreg |= (1 << USART_CR1_PCE);
 	}
 
 	pUSARTx->CR1 = tempreg;
@@ -83,13 +83,7 @@ void usart_init(USART_Handle_t* pHandle)
 	// Configure BRR
 	tempreg = 0;
 
-	uint32_t baud = (config.baud == 0) ? 1200 :
-					(config.baud == 1) ? 2400 :
-					(config.baud == 2) ? 9600 :
-					(config.baud == 3) ? 19200 :
-					(config.baud == 4) ? 115200 : 0;
-
-	uint32_t tempvalue = (16000000 + baud / 2) / baud;
+	uint32_t tempvalue = (16000000 + config.baud / 2) / config.baud;
 
 	if (config.over8)
 	{
@@ -106,205 +100,206 @@ void usart_init(USART_Handle_t* pHandle)
 }
 
 
-
-void usart_send_data(USART_Handle_t* p_handle, uint8_t* p_tx_buffer, uint32_t len)
+void USART_SendData(USART_Handle_t* pHandle, uint8_t* data, uint32_t len)
 {
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 
 	while (len > 0)
 	{
-		while (! (pUSARTx->SR & (1 << 7)) ); 	// wait for TXE
+		while (! (pUSARTx->SR & (1 << USART_SR_TXE)) ); 	// wait for TXE
 
-		pUSARTx->DR = *(p_tx_buffer);
+		pUSARTx->DR = *(data);
 
 		len--;
-		p_tx_buffer++;
+		data++;
 	}
 
-	while (! (pUSARTx->SR & (1 << 6))); // wait til transmission is complete
-	pUSARTx->SR &= ~(1 << 6);
+	while (! (pUSARTx->SR & (1 << USART_SR_TC))); // wait til transmission is complete
+	pUSARTx->SR &= ~(1 << USART_SR_TC);
 }
 
 
-void usart_receive_data(USART_Handle_t* p_handle, uint8_t* p_rx_buffer, uint32_t len)
+void USART_ReceiveData(USART_Handle_t* pHandle, uint8_t* data, uint32_t len)
 {
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 
 	 uint8_t parity_mask = 0xFF;
 
 	// if parity is enabled
-	if (pUSARTx->CR1 & (1 << 10))
+	if (pUSARTx->CR1 & (1 << USART_CR1_PCE))
 	{
 		parity_mask = 0x7F;
 	}
 
 	while (len > 0)
 	{
-		while (! (pUSARTx->SR & (1 << 5)) ); 	// wait for RXNE
+		while (! (pUSARTx->SR & (1 << USART_SR_RXNE)) ); 	// wait for RXNE
 
-		*p_rx_buffer = (uint8_t) (pUSARTx->DR & parity_mask);
+		*data = (uint8_t) (pUSARTx->DR & parity_mask);
 
 		len--;
-		p_rx_buffer++;
+		data++;
 	}
 
 }
 
 
-uint8_t usart_send_data_it(USART_Handle_t* p_handle, uint8_t* p_tx_buffer, uint32_t len)
+uint8_t USART_SendDataIT(USART_Handle_t* pHandle, uint8_t* data, uint32_t len)
 {
-	if (p_handle->txstate) return 1;
+	uint8_t state = pHandle->RxState;
+	if (state == USART_STATE_RX_BUSY || state == USART_STATE_TX_BUSY) return state;
 
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
 
-	p_handle->p_tx_buffer = p_tx_buffer;
-	p_handle->len = len;
-	p_handle->txstate = 1;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 
-	pUSARTx->CR1 |= (1 << 7); // enable TXEIE
-	pUSARTx->CR1 |= (1 << 6); // enable TCIE
+	pHandle->pTxBuf = data;
+	pHandle->len = len;
+	pHandle->TxState = USART_STATE_TX_BUSY;
 
-	return 0;
+	pUSARTx->CR1 |= (1 << USART_CR1_TXEIE); // enable TXEIE
+	pUSARTx->CR1 |= (1 << USART_CR1_TCIE); // enable TCIE
+
+	return state;
 }
 
 
-
-uint8_t usart_receive_data_it(USART_Handle_t* p_handle, uint8_t* p_tx_buffer, uint32_t len)
+uint8_t USART_ReceiveDataIT(USART_Handle_t* pHandle, uint8_t* data, uint32_t len)
 {
-	if (p_handle->rxstate) return 1;
+	uint8_t state = pHandle->RxState;
+	if (state == USART_STATE_RX_BUSY || state == USART_STATE_TX_BUSY) return state;
 
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 
-	p_handle->p_rx_buffer = p_tx_buffer;
-	p_handle->len = len;
-	p_handle->rxstate = 1;
+	pHandle->pRxBuf = data;
+	pHandle->len = len;
+	pHandle->RxState = USART_STATE_RX_BUSY;
 
-	pUSARTx->CR1 |= (1 << 5); // enable RXNE
+	pUSARTx->CR1 |= (1 << USART_CR1_RXNEIE); // enable RXNE
 
-	return 0;
+	return state;
 }
 
 
-void usart_irq_handling(USART_Handle_t* p_handle)
+void USART_IRQHandler(USART_Handle_t* pHandle)
 {
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 	uint32_t temp1, temp2;
 
-	temp1 = pUSARTx->SR & (1 << 6); // tc
-	temp2 = pUSARTx->CR1 & (1 << 6); // tcie
+	temp1 = pUSARTx->SR & (1 << USART_SR_TC);
+	temp2 = pUSARTx->CR1 & (1 << USART_CR1_TCIE);
 
 	// TCIE Handling
 	if (temp1 && temp2)
 	{
-		usart_handle_tcie(p_handle);
+		usart_handle_tcie(pHandle);
 	}
 
-	temp1 = pUSARTx->SR & (1 << 7); // txe
-	temp2 = pUSARTx->CR1 & (1 << 7); // txeie
+	temp1 = pUSARTx->SR & (1 << USART_SR_TXE);
+	temp2 = pUSARTx->CR1 & (1 << USART_CR1_TXEIE);
 
 	if (temp1 && temp2)
 	{
-		usart_handle_txeie(p_handle);
+		usart_handle_txeie(pHandle);
 	}
 
-	temp1 = pUSARTx->SR & (1 << 5); // rxne
-	temp2 = pUSARTx->CR1 & (1 << 5); // rxneie
+	temp1 = pUSARTx->SR & (1 << USART_SR_RXNE);
+	temp2 = pUSARTx->CR1 & (1 << USART_CR1_RXNEIE);
 
 	if (temp1 && temp2)
 	{
-		usart_handle_rxneie(p_handle);
+		usart_handle_rxneie(pHandle);
 	}
 }
 
 // Interrupt Handlers
 
-static void usart_handle_txeie(USART_Handle_t* p_handle)
+static void usart_handle_txeie(USART_Handle_t* pHandle)
 {
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 
-	if (p_handle->txstate)
+	if (pHandle->TxState == USART_STATE_TX_BUSY)
 	{
-		if (p_handle->len > 0)
+		if (pHandle->len > 0)
 		{
-			if (pUSARTx->CR1 & (1 << 12)) // 9 bit word
+			if (pUSARTx->CR1 & (1 << USART_CR1_M)) // 9 bit word
 			{
-				pUSARTx->DR = *((uint16_t*) p_handle->p_tx_buffer) & 0x01FF;
-				p_handle->p_tx_buffer++;
-				p_handle->len--;
+				pUSARTx->DR = *((uint16_t*) pHandle->pTxBuf) & 0x01FF;
+				pHandle->pTxBuf++;
+				pHandle->len--;
 			} else // 8 bit word
 			{
-				pUSARTx->DR = *(p_handle->p_tx_buffer);
+				pUSARTx->DR = *(pHandle->pTxBuf);
 			}
 
-			p_handle->len--;
-			p_handle->p_tx_buffer++;
+			pHandle->len--;
+			pHandle->pTxBuf++;
 		} else
 		{
-			pUSARTx->CR1 &= ~(1 << 7); // Clear TXEIE
+			pUSARTx->CR1 &= ~(1 << USART_CR1_TXEIE); // Clear TXEIE
 		}
 	}
 }
 
-static void usart_handle_tcie(USART_Handle_t* p_handle)
+static void usart_handle_tcie(USART_Handle_t* pHandle)
 {
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
-	if (p_handle->txstate)
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
+	if (pHandle->TxState == USART_STATE_TX_BUSYTE)
 	{
-		if (p_handle->len == 0)
+		if (pHandle->len == 0)
 		{
-			pUSARTx->SR &= ~(1 << 6); // clear TC flag
+			pUSARTx->SR &= ~(1 << USART_SR_TC); // clear TC flag
 
-			pUSARTx->CR1 &= ~(1 << 6); // Clear TCIE
+			pUSARTx->CR1 &= ~(1 << USART_CR1_TCIE); // Clear TCIE
 
-			p_handle->txstate = 0;
-			p_handle->len = 0;
-			p_handle->p_tx_buffer = 0;
+			pHandle->TxState = USART_STATE_FREE;
+			pHandle->len = 0;
+			pHandle->pTxBuf = 0;
 		}
 	}
 }
 
-static void usart_handle_rxneie(USART_Handle_t* p_handle)
+static void usart_handle_rxneie(USART_Handle_t* pHandle)
 {
-	if (!p_handle->rxstate) return;
+	if (pHandle->RxState != USART_STATE_RX_BUSY) return;
 
-	USART_Reg_t* pUSARTx = p_handle->pUSARTx;
+	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 	uint8_t parity_mask = 0xFF;
 
 	(void) parity_mask;
 
 
-	if (p_handle->len > 0)
+	if (pHandle->len > 0)
 	{
-		if (pUSARTx->CR1 & (1 << 12)) // if 9 bit frame
+		if (pUSARTx->CR1 & (1 << USART_CR1_M)) // if 9 bit frame
 		{
-			if (pUSARTx->CR1 & (1 << 10)) // if parity is enabled
+			if (pUSARTx->CR1 & (1 << USART_CR1_PCE)) // if parity is enabled
 			{
-				*(p_handle->p_rx_buffer) = (uint8_t) pUSARTx->DR;
-				p_handle->len--;
-				p_handle->p_rx_buffer++;
+				*(pHandle->pRxBuf) = (uint8_t) pUSARTx->DR;
+				pHandle->len--;
+				pHandle->pRxBuf++;
 			} else
 			{
-				*(p_handle->p_rx_buffer) = (uint16_t) (pUSARTx->DR & 0x01FF);
-				p_handle->len -= 2;
-				p_handle->p_rx_buffer += 2;
+				*(pHandle->pRxBuf) = (uint16_t) (pUSARTx->DR & 0x01FF);
+				pHandle->len -= 2;
+				pHandle->pRxBuf += 2;
 			}
 		} else
 		{
-			if (pUSARTx->CR1 & (1 << 10)) // parity enabled
+			if (pUSARTx->CR1 & (1 << USART_CR1_PCE)) // parity enabled
 			{
-				*(p_handle->p_rx_buffer) = (uint8_t) (pUSARTx->DR & 0x7F);
+				*(pHandle->pRxBuf) = (uint8_t) (pUSARTx->DR & 0x7F);
 			} else
 			{
-				*(p_handle->p_rx_buffer) = (uint8_t) pUSARTx->DR;
+				*(pHandle->pRxBuf) = (uint8_t) pUSARTx->DR;
 			}
 
-			p_handle->len--;
-			p_handle->p_rx_buffer++;
+			pHandle->len--;
+			pHandle->pRxBuf++;
 		}
 	} else
 	{
-		pUSARTx->CR1 &= ~(1 << 5); // Clear rxneie
-		p_handle->rxstate = 0;
+		pUSARTx->CR1 &= ~(1 << USART_CR1_RXNEIE); // Clear rxneie
+		pHandle->RxState = USART_STATE_FREE;
 	}
 }
 
@@ -319,7 +314,6 @@ int _write(int file, char *ptr, int len)
 
 	return len;
 }
-
 
 void USART2_GPIOInit(void)
 {
@@ -342,7 +336,6 @@ void USART2_GPIOInit(void)
     gpio.GPIOConfig.GPIO_PinNumber = 3;
     GPIO_Init(&gpio);
 }
-
 
 void USART2_Init(void)
 {
