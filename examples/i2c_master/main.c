@@ -68,7 +68,7 @@ int main(void)
 	I2C_GPIO_Inits();
 	I2C_Inits();
 
-	systick_enable(16000000);
+	systick_enable();
 
 	while (1)
 	{

@@ -82,8 +82,8 @@ void USART_Init(USART_Handle_t* pHandle)
 
 	// Configure BRR
 	tempreg = 0;
-
-	uint32_t tempvalue = (16000000 + config.baud / 2) / config.baud;
+	uint32_t APB1_clk = RCC_GetPClk1();
+	uint32_t tempvalue = (APB1_clk + config.baud / 2) / config.baud;
 
 	if (config.over8)
 	{

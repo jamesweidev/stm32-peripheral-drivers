@@ -7,4 +7,4 @@ set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(system)
 add_subdirectory(peripheral_drivers)
 add_subdirectory(examples/i2c_master)
-
+add_subdirectory(examples/spi_master)

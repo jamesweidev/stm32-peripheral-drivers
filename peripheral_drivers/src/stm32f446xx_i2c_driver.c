@@ -1,6 +1,5 @@
 #include "stm32f446xx_i2c_driver.h"
 
-#define APB_CLK_FREQ 16000000
 
 static void I2C_SendStopSignal(I2C_Reg_t* pI2Cx)
 {
@@ -172,12 +171,13 @@ void I2C_Init(I2C_Handle_t* pHandle)
 		duty_sum = 3;
 	}
 
+	uint32_t APB1_clk = RCC_GetPClk1();
 	if (config.SCLSpeed == I2C_SCL_SPEED_SM)
 	{
-		pI2Cx->CCR |= (APB_CLK_FREQ / (I2C_SCL_SPEED_SM * duty_sum));
+		pI2Cx->CCR |= (APB1_clk / (I2C_SCL_SPEED_SM * duty_sum));
 	} else if (config.SCLSpeed == I2C_SCL_SPEED_FM2K)
 	{
-		pI2Cx->CCR |= (APB_CLK_FREQ / (I2C_SCL_SPEED_FM2K * duty_sum));
+		pI2Cx->CCR |= (APB1_clk / (I2C_SCL_SPEED_FM2K * duty_sum));
 	}
 
 	// Configure TRise

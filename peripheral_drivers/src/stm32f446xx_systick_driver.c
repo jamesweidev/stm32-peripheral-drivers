@@ -1,12 +1,15 @@
 #include "stm32f446xx_systick_driver.h"
+#include "stm32f446xx_rcc_driver.h"
 
 
 volatile uint32_t g_ms_ticks = 0;
 
-void systick_enable(uint32_t clk_speed)
+void systick_enable()
 {
+	uint32_t hclk = RCC_GetHClk();
+
 	// 1. set reload value
-	uint32_t reload = clk_speed / 1000;
+	uint32_t reload = hclk / 1000;
 	SYSTICK->RVR = reload;
 
 	// 2. clear current value
