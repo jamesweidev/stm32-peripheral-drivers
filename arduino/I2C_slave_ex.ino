@@ -14,7 +14,7 @@ char rx_buffer[64];
 uint32_t cnt =0;
 char message[50];
 
-char* message_to_send = "what the helly gangy";
+char* message_to_send = "message sent from arduino";
 
 void setup() {
 

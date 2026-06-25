@@ -4,7 +4,7 @@ static void usart_handle_txeie(USART_Handle_t* pHandle);
 static void usart_handle_tcie(USART_Handle_t* pHandle);
 static void usart_handle_rxneie(USART_Handle_t* pHandle);
 
-void usart_ClkControl(USART_Reg_t* pUSARTx, uint8_t enable)
+void USART_ClkControl(USART_Reg_t* pUSARTx, uint8_t enable)
 {
 	if (enable)
 	{
@@ -33,7 +33,7 @@ void USART_Init(USART_Handle_t* pHandle)
 	uint32_t tempreg = 0;
 
 	// enable clock
-	usart_clk_control(pUSARTx, 1);
+	USART_ClkControl(pUSARTx, 1);
 
 	// CR2
 	tempreg |= (config.stop_bits << USART_CR2_STOP); // configure stop bits
@@ -180,7 +180,7 @@ uint8_t USART_ReceiveDataIT(USART_Handle_t* pHandle, uint8_t* data, uint32_t len
 }
 
 
-void USART_IRQHandler(USART_Handle_t* pHandle)
+void USART_IRQHandling(USART_Handle_t* pHandle)
 {
 	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
 	uint32_t temp1, temp2;
@@ -243,7 +243,7 @@ static void usart_handle_txeie(USART_Handle_t* pHandle)
 static void usart_handle_tcie(USART_Handle_t* pHandle)
 {
 	USART_Reg_t* pUSARTx = pHandle->pUSARTx;
-	if (pHandle->TxState == USART_STATE_TX_BUSYTE)
+	if (pHandle->TxState == USART_STATE_TX_BUSY)
 	{
 		if (pHandle->len == 0)
 		{
@@ -310,7 +310,7 @@ int _write(int file, char *ptr, int len)
 {
 	(void) file;
 
-	usart_send_data(&usart2_handle, (uint8_t *) ptr, len);
+	USART_SendData(&usart2_handle, (uint8_t *) ptr, len);
 
 	return len;
 }
@@ -339,19 +339,17 @@ void USART2_GPIOInit(void)
 
 void USART2_Init(void)
 {
-
-
     usart2_handle.pUSARTx = USART2;
-    usart2_handle.config.baud = 4;
-    usart2_handle.config.flow_ctrl = 0;
-    usart2_handle.config.mode = 0;
-    usart2_handle.config.stop_bits = 0;
-    usart2_handle.config.word_len = 0;
-    usart2_handle.config.parity = 0;
-    usart2_handle.config.over8 = 0;
+    usart2_handle.config.baud = (uint32_t) 115200;
+    usart2_handle.config.flow_ctrl = USART_FLOW_CTRL_NONE;
+    usart2_handle.config.mode = USART_MODE_TX;
+    usart2_handle.config.stop_bits = USART_STOP_BITS_1;
+    usart2_handle.config.word_len = USART_WORD_LEN_8;
+    usart2_handle.config.parity = USART_PARITY_OFF;
+    usart2_handle.config.over8 = USART_OVER8_16;
 
-    usart_clk_control(USART2, ENABLE);
-    usart_init(&usart2_handle);
+    USART_ClkControl(USART2, ENABLE);
+    USART_Init(&usart2_handle);
 }
 
 void printf_init(void)

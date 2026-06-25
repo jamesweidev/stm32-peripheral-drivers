@@ -8,8 +8,7 @@ Driver include and source code at peripheral_drivers/drivers/
 
 ## Build
 From root:
-1. cmake -S . -B build -G Ninja \\
-  -DCMAKE_TOOLCHAIN_FILE=system/cmake/gcc-arm-none-eabi.cmake
+1. cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=system/cmake/gcc-arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 2. cmake --build build
 

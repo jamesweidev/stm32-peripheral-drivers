@@ -6,7 +6,7 @@
 typedef struct
 {
 	uint8_t mode;
-	uint8_t baud;
+	uint32_t baud;
 	uint8_t word_len;
 	uint8_t stop_bits;
 	uint8_t flow_ctrl;
@@ -65,6 +65,7 @@ void USART_ReceiveData(USART_Handle_t* pHandle, uint8_t* data, uint32_t len);
 uint8_t USART_SendDataIT(USART_Handle_t* pHandle, uint8_t* data, uint32_t len);
 uint8_t USART_ReceiveDataIT(USART_Handle_t* pHandle, uint8_t* data, uint32_t len);
 
+void USART_IRQHandling(USART_Handle_t* pHandle);
 
 void printf_init(void);
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "stm32f446xx.h"
+#include "stm32f446xx_i2c_driver.h"
 
 #define I2C_SCL_PIN		8
 #define I2C_SDA_PIN		9
@@ -12,6 +13,7 @@ uint8_t tx_cmd = 0x67;
 uint8_t rx_cmd = 0x69;
 
 uint8_t rx_complete = 0;
+uint8_t tx_complete = 0;
 
 uint8_t inc_data_len;
 
@@ -72,14 +74,15 @@ int main(void)
 
 	while (1)
 	{
-		while (I2C_MasterSendDataIT(&pI2CHandle, &tx_cmd, 1, TARGET_ADDR, I2C_REPEATED_START_ON) != I2C_STATE_FREE);
+		while (I2C_MasterSendDataIT(&pI2CHandle, &tx_cmd, 1, TARGET_ADDR, I2C_REPEATED_START_OFF) != I2C_STATE_FREE);
 		while (I2C_MasterSendDataIT(&pI2CHandle, (uint8_t*)data, strlen(data), TARGET_ADDR, I2C_REPEATED_START_OFF) != I2C_STATE_FREE);
-		delay(2000);
+		tx_complete = 0;
+		while (!tx_complete);
 		// Get the number of bytes in the message
 		I2C_MasterSendData(&len_cmd, 1, TARGET_ADDR, I2C1);
 		I2C_MasterReceiveData(&inc_data_len, 1, TARGET_ADDR, I2C1);
 		// Get the data itself
-		while (I2C_MasterSendDataIT(&pI2CHandle, &rx_cmd, 1, TARGET_ADDR, I2C_REPEATED_START_ON) != I2C_STATE_FREE);
+		while (I2C_MasterSendDataIT(&pI2CHandle, &rx_cmd, 1, TARGET_ADDR, I2C_REPEATED_START_OFF) != I2C_STATE_FREE);
 		while (I2C_MasterReceiveDataIT(&pI2CHandle, (uint8_t*)recv_data, (uint32_t) inc_data_len, TARGET_ADDR, I2C_REPEATED_START_OFF) != I2C_STATE_FREE);
 
 		rx_complete = 0;
@@ -113,6 +116,9 @@ void I2C_ApplicationEventCallback(I2C_Handle_t* pHandle, uint8_t event_type)
 	} else if (event_type == I2C_EVENT_RX_COMPLETE)
 	{
 		rx_complete = 1;
+	} else if (event_type == I2C_EVENT_TX_COMPLETE)
+	{
+		tx_complete = 1;
 	}
 }
 

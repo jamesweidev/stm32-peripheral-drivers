@@ -84,6 +84,12 @@ void I2C_MasterReceiveData(uint8_t* data, uint32_t len, uint8_t target_addr, I2C
 uint8_t I2C_MasterSendDataIT(I2C_Handle_t* pHandle, uint8_t* data, uint32_t len, uint8_t target_addr, uint8_t sr);
 uint8_t I2C_MasterReceiveDataIT(I2C_Handle_t* pHandle, uint8_t* data, uint32_t len, uint8_t target_addr, uint8_t sr);
 
+void I2C_SlaveReceiveDataIT(I2C_Handle_t* pHandle);
+void I2C_SlaveSendDataIT(I2C_Handle_t* pHandle);
+
+uint8_t I2C_SlaveGetByte(I2C_Reg_t* pI2Cx);
+void I2C_SlaveSendByte(I2C_Reg_t* pI2Cx, uint8_t byte);
+
 void I2C_IRQConfig(uint8_t IRQNumber, uint8_t enable);
 void I2C_IRQPriorityConfig(uint8_t IRQNumber, uint8_t IRQPriority);
 void I2C_IRQHandling(I2C_Handle_t* pHandle);

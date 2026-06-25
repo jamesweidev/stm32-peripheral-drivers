@@ -1,4 +1,5 @@
 #include "stm32f446xx_i2c_driver.h"
+#include "stm32f446xx.h"
 
 
 static void I2C_SendStopSignal(I2C_Reg_t* pI2Cx)
@@ -347,6 +348,39 @@ uint8_t I2C_MasterReceiveDataIT(I2C_Handle_t* pHandle, uint8_t* data, uint32_t l
 	return state;
 }
 
+void I2C_SlaveReceiveDataIT(I2C_Handle_t* pHandle)
+{
+	pHandle->State = I2C_STATE_RX_BUSY;
+	I2C_Reg_t* pI2Cx = pHandle->pI2Cx;
+
+	I2C_ACKControl(pI2Cx, ENABLE);
+
+	// Enable appropriate interrupts
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITERREN);
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITBUFEN);
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITEVTEN);
+}
+
+void I2C_SlaveSendDataIT(I2C_Handle_t* pHandle)
+{
+	pHandle->State = I2C_STATE_TX_BUSY;
+	I2C_Reg_t* pI2Cx = pHandle->pI2Cx;
+
+	// Enable appropriate interrupts
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITERREN);
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITBUFEN);
+	pI2Cx->CR2 |= (1 << I2C_CR2_ITEVTEN);
+}
+
+uint8_t I2C_SlaveGetByte(I2C_Reg_t* pI2Cx)
+{
+	return (uint8_t) pI2Cx->DR;
+}
+void I2C_SlaveSendByte(I2C_Reg_t* pI2Cx, uint8_t byte)
+{
+	pI2Cx->DR = byte;
+}
+
 void I2C_IRQConfig(uint8_t IRQNumber, uint8_t enable)
 {
 	uint8_t reg_num = IRQNumber / 32;
@@ -497,7 +531,7 @@ void I2C_IRQHandling(I2C_Handle_t* pHandle)
 			I2C_RxReadByte(&pHandle->pRxBuf, &pHandle->RxLen, pI2Cx);
 		} else
 		{
-			// Slave mode, call user call back and request data
+			// Slave mode, call user call back
 			// Ensure slave is in receive mode
 			if (!(pI2Cx->SR2 & (1 << I2C_SR2_TRA)))
 			{
@@ -516,7 +550,6 @@ void I2C_IRQHandling(I2C_Handle_t* pHandle)
 
 		I2C_ApplicationEventCallback(pHandle, I2C_EVENT_SLAVE_STOP);
 	}
-
 }
 
 
